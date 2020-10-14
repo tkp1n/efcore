@@ -26,7 +26,11 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected QueryAsserter QueryAsserter { get; }
 
         protected virtual QueryAsserter CreateQueryAsserter(TFixture fixture)
-            => new QueryAsserter(fixture, RewriteExpectedQueryExpression, RewriteServerQueryExpression, IgnoreEntryCount);
+            => new QueryAsserter(
+                fixture,
+                RewriteExpectedQueryExpression,
+                RewriteServerQueryExpression,
+                IgnoreEntryCount);
 
         protected virtual bool IgnoreEntryCount
             => false;
@@ -1090,6 +1094,62 @@ namespace Microsoft.EntityFrameworkCore.Query
             Action<double?, double?> asserter = null)
             => QueryAsserter.AssertAverage(
                 actualQuery, expectedQuery, actualSelector, expectedSelector, asserter, async);
+
+        #endregion
+
+        #region Query filter methods
+
+        public Task AssertFilteredQuery<TResult>(
+            bool async,
+            Func<ISetSource, IQueryable<TResult>> query,
+            Func<TResult, object> elementSorter = null,
+            Action<TResult, TResult> elementAsserter = null,
+            bool assertOrder = false,
+            int entryCount = 0,
+            [CallerMemberName] string testMethodName = null)
+            where TResult : class
+            => AssertFilteredQuery(async, query, query, elementSorter, elementAsserter, assertOrder, entryCount, testMethodName);
+
+        public Task AssertFilteredQuery<TResult>(
+            bool async,
+            Func<ISetSource, IQueryable<TResult>> actualQuery,
+            Func<ISetSource, IQueryable<TResult>> expectedQuery,
+            Func<TResult, object> elementSorter = null,
+            Action<TResult, TResult> elementAsserter = null,
+            bool assertOrder = false,
+            int entryCount = 0,
+            [CallerMemberName] string testMethodName = null)
+            where TResult : class
+            => QueryAsserter.AssertQuery(
+                actualQuery, expectedQuery, elementSorter, elementAsserter, assertOrder, entryCount, async, testMethodName, filteredQuery: true);
+
+        public Task AssertFilteredQueryScalar<TResult>(
+            bool async,
+            Func<ISetSource, IQueryable<TResult>> query,
+            bool assertOrder = false,
+            [CallerMemberName] string testMethodName = null)
+            where TResult : struct
+            => AssertFilteredQueryScalar(async, query, query, assertOrder, testMethodName);
+
+        public Task AssertFilteredQueryScalar<TResult>(
+            bool async,
+            Func<ISetSource, IQueryable<TResult>> actualQuery,
+            Func<ISetSource, IQueryable<TResult>> expectedQuery,
+            bool assertOrder = false,
+            [CallerMemberName] string testMethodName = null)
+            where TResult : struct
+            => QueryAsserter.AssertQueryScalar(actualQuery, expectedQuery, assertOrder, async, testMethodName, filteredQuery: true);
+
+        protected Task AssertFilteredCount<TResult>(
+            bool async,
+            Func<ISetSource, IQueryable<TResult>> query)
+            => AssertFilteredCount(async, query, query);
+
+        protected Task AssertFilteredCount<TResult>(
+            bool async,
+            Func<ISetSource, IQueryable<TResult>> actualQuery,
+            Func<ISetSource, IQueryable<TResult>> expectedQuery)
+            => QueryAsserter.AssertCount(actualQuery, expectedQuery, async, filteredQuery: true);
 
         #endregion
 
